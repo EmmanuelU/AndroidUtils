@@ -41,7 +41,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-public class BackgroundTask extends AsyncTask<String, Integer, String> implements Constants {
+public class BackgroundTask extends AsyncTask<String, Integer, String> {
 
     public static interface task {
 	void doInBackground();

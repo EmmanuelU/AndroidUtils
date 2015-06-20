@@ -3,9 +3,6 @@ package com.emman.utils;
 import android.app.Activity;
 
 import android.app.AlertDialog;
-import android.app.Notification;
-import android.app.Notification.Builder;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -36,7 +33,6 @@ import android.widget.Toast;
 import android.util.Log;
 
 import com.emman.utils.BackgroundTask;
-import com.emman.utils.NotificationID;
 
 import com.stericson.RootShell.execution.Command;
 import com.stericson.RootShell.execution.Shell;
@@ -85,15 +81,15 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-public class Utils implements Constants {
+public class Utils {
 
-    /** OVERRIDE THESE **/
-    public static Context getContext(){ return null; }
-    public synchronized static void log(String... messages){}
-    public static void errorHandle(Exception e){}
-    public static void errorHandle(Exception e, String errordesc){}
-    public static boolean extractAsset(Context context, String asset){ return false; }
-    public static void notification(Context context, NotificationID id, Intent intent, String message){}
+    public static final String FILE_TEXT_FORMAT = "text/*";
+    public static final String EXTRA_FORCE_SHOW_LIGHTS = "android.forceShowLights";
+    public static final String NEW_LINE = "\n";
+    public static final String LINE_SPACE = " ";
+    public static final String NUM_OF_CPUS_PATH = "/sys/devices/system/cpu/present";
+
+    /** Override when necessary **/
 
     public static String writeFile(String fname, String data) {
         try {
@@ -136,8 +132,7 @@ public class Utils implements Constants {
 	return value;
     }
 
-    public static void launchSYSQueue() {
-	Context context = getContext();
+    public static void launchSYSQueue(Context context) {
 	final BackgroundTask mCMDTask = new BackgroundTask(context);
 	mCMDTask.queueTask(new BackgroundTask.task() {
 		@Override
@@ -169,7 +164,6 @@ public class Utils implements Constants {
 		File file = new File(filePath);
 		intent.setDataAndType(Uri.fromFile(file), type);
 		context.startActivity(intent); 
-		log("-FILE-", "Opening " + filePath + " (" + type + ") with external module.");
 	}
     }
     
@@ -191,9 +185,7 @@ public class Utils implements Constants {
 		FileOutputStream outputStream = context.openFileOutput(filename, Context.MODE_PRIVATE);
 		outputStream.write(filename.getBytes());
 		outputStream.close();
-	} catch (Exception e) {
-		errorHandle(e);
-	}
+	} catch (Exception unhandled) {}
     }
 
     public static boolean isNumeric(String str){
@@ -227,7 +219,6 @@ public class Utils implements Constants {
 		    }
 		}
 		numOfCpu = cpus;
-		log("-INFO-", "Device has " + numOfCpu + " processors.");
 	}
         return numOfCpu;
     }
@@ -249,7 +240,6 @@ public class Utils implements Constants {
      */
     public static boolean fileExists(String filename) {
 	if(!new File(filename).exists()){
-		log("-FILE-", "'" + filename + "' does not exist.");
 		return false;
 	}
         return true;
@@ -322,10 +312,10 @@ public class Utils implements Constants {
     }
 
     private static boolean fetchComplete = false;
-    public static String fetchTextFile(final String fileUrl) {
-	if(!isNetworkOnline(getContext())) return "";
+    public static String fetchTextFile(Context context, final String fileUrl) {
+	if(!isNetworkOnline(context)) return "";
 	final StringBuilder contents = new StringBuilder();
-	final BackgroundTask mFetchTask = new BackgroundTask(getContext());
+	final BackgroundTask mFetchTask = new BackgroundTask(context);
 	fetchComplete = false;
 	mFetchTask.queueTask(new BackgroundTask.task() {
 		@Override
@@ -347,9 +337,7 @@ public class Utils implements Constants {
 				    contents.append(line + "\n");
 				}
 			}
-			catch (Exception e) {
-				errorHandle(e);
-			}
+			catch (Exception unhandled) {}
 			fetchComplete = true;
 		}
 
@@ -366,12 +354,7 @@ public class Utils implements Constants {
 		try{
 			Thread.sleep(50);
 			timeoutms += 50;
-              	} catch (Exception e){
-			errorHandle(e);
-		}
-		finally{
-			if(timeoutms >= 10000) log("-NET-", "URL Fetch of '" + fileUrl + "' timed out.");
-		}
+              	} catch (Exception unhandled){}
         }
 
 	return contents.toString();
@@ -510,9 +493,6 @@ public class Utils implements Constants {
 				Thread.sleep(50);
 				timeoutms += 50;
 		      	} catch (Exception unlikely){}
-			finally{
-				if(timeoutms >= 10000) log("-COMMAND-", "Process timed out after 10 seconds.", "Output: " + cmdOutput);
-			}
 		}
 
 		try{
@@ -527,21 +507,10 @@ public class Utils implements Constants {
 
     public static void toast(Context context, String message) {
 	Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
-	log("-TOAST-", message);
     }
 
     public static void burntToast(Context context, String message) {
 	Toast.makeText(context, message, Toast.LENGTH_LONG).show();
-	log("-TOAST-", message);
-    }
-
-    public static int getNotificationID(NotificationID id) {
-	return id.ordinal();
-    }
-
-    public static void clearNotification(Context context, NotificationID id){
-	NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-	notificationManager.cancel(Utils.getNotificationID(id));
     }
 
     public static void layoutDisable(ViewGroup layout) {
@@ -609,9 +578,7 @@ public class Utils implements Constants {
             out.close();
             out = null;
  
-        } catch (Exception e) {
-            errorHandle(e, "Failed to extract Application Assets, do you have an sdcard?");
-        }
+        } catch (Exception unhandled) {}
     }
 
    public static String calculateMD5Checksum(String file) throws Exception {
