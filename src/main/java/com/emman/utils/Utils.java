@@ -85,15 +85,15 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-public abstract class Utils implements Constants {
+public class Utils implements Constants {
 
-    public static boolean logSafeContext = false;
-
-/** OVERRIDE THESE **/
+    /** OVERRIDE THESE **/
     public static Context getContext(){ return null; }
     public synchronized static void log(String... messages){}
-    public static void errorHandle(Exception e) {}
+    public static void errorHandle(Exception e){}
     public static void errorHandle(Exception e, String errordesc){}
+    public static boolean extractAsset(Context context, String asset){ return false; }
+    public static void notification(Context context, NotificationID id, Intent intent, String message){}
 
     public static String writeFile(String fname, String data) {
         try {
@@ -539,8 +539,6 @@ public abstract class Utils implements Constants {
 	return id.ordinal();
     }
 
-   public abstract void notification(Context context, NotificationID id, Intent intent, String message);
-
     public static void clearNotification(Context context, NotificationID id){
 	NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
 	notificationManager.cancel(Utils.getNotificationID(id));
@@ -593,30 +591,6 @@ public abstract class Utils implements Constants {
 		return assetFiles.open(asset);
 	} catch (Exception unhandled){}
 	return null;
-    }
-
-    public static boolean extractAsset(Context context, String asset){
-	try {
-            AssetManager assetFiles = context.getAssets();
-	    asset = Utils.getFileName(asset);
- 
-            String[] files = assetFiles.list(TAG);
- 
-            InputStream in = null;
-            OutputStream out = null;
-                      
-	    in = getAssetInputStream(context, asset);
-            File directory = new File(TAG);
-            directory.mkdirs();
-
-            out = new FileOutputStream(TAG + asset);
-            copyAssets(in, out);
-	    log("-FILE-", "Extracted asset to '" + asset + "'.");
-	    return true;
-        } catch (Exception e) {
-            errorHandle(e, "Failed to extract asset to '" + asset + "'.");
-	    return false;
-        }
     }
  
     private static void copyAssets(InputStream in, OutputStream out) {
